@@ -1,0 +1,118 @@
+from ipywidgets import interactive
+from sympy import symbols, log
+import matplotlib.pyplot as plt
+import numpy as np
+'''Creating a slope field for an ODE and numerically finding solution curve.'''
+
+
+x, y = symbols('x y')
+
+class Ordinate:
+    def __init__(self, m, coords: tuple, length=0.8):
+        self.defined = True
+        self.coords = np.array(coords)
+        self.length = length
+        try:
+            m = float(m)
+            self.m = m
+            m_vector_magnitude = (1**2 + m**2)**0.5
+            unit_vector = np.array((1, m)) / m_vector_magnitude
+            self.point1 = self.coords + unit_vector * 0.5 * length
+            self.point2 = self.coords - unit_vector * 0.5 * length
+        except Exception:
+            self.defined = False
+
+    def draw(self):
+        if self.defined:
+            plt.plot(*self.coords, 'bo', markersize=3)
+            plt.plot([self.point1[0], self.point2[0]],
+                     [self.point1[1], self.point2[1]], 'b', linewidth=1)
+
+def f(delta_x):
+  # define ODE: dy/dx = log(x)
+  d = x*y
+
+
+  fig, ax = plt.subplots()
+  xmin, xmax = -10, 10
+  ymin, ymax = -10, 10
+
+  # draw x and y axis
+  plt.plot((xmin, xmax), (0, 0), 'black')
+  plt.plot((0, 0), (ymin, ymax), 'black')
+
+  for i in range(xmin, xmax + 1):
+      # if i <= 0:  # skip undefined log(x)
+      #     continue
+      for j in range(ymin, ymax + 1):
+          m = d.subs({x: i, y: j}).evalf()
+          line = Ordinate(m, (i, j))
+          line.draw()
+
+
+  # plt.xlim(xmin, xmax)
+  # plt.ylim(ymin, ymax)
+  plt.axis([xmin, xmax, ymin, ymax])
+  plt.title("Slope field for dy/dx = log(x)")
+  plt.xlabel("x")
+  plt.ylabel("y")
+  plt.grid()
+
+
+
+  # running euler's method
+  solution_x = []
+  solution_y = []
+  pivot = (0, 3)
+
+  # y - y1 = m * (x - x1)   =>   y = m * delta_x + y1
+  x_val = pivot[0]
+  y_val = pivot[1] # y_val is corresponding y for the solution curve
+  solution_x.append(x_val)
+  solution_y.append(y_val)
+  while x_val <= xmax and y_val <= ymax:
+    try:
+      gradient = d.subs({x:x_val, y:y_val})
+      if not isinstance(float(gradient), float):
+        raise ValueError('Substitution is complex.')
+      else:
+        gradient = float(gradient)
+    except Exception: # cannot calculate gradient from existing ordinate, terminate euler's method
+      break
+    x_val += delta_x
+    y_val = delta_x * gradient + y_val
+    solution_x.append(x_val)
+    solution_y.append(y_val)
+
+  plt.plot(solution_x, solution_y, 'r')
+
+
+  # doing the negative direction
+  x_val = pivot[0]
+  y_val = pivot[1] # y_val is corresponding y for the solution curve
+  solution_x, solution_y = [], []
+  solution_x.append(x_val)
+  solution_y.append(y_val)
+  while x_val >= xmin and y_val >= ymin:
+    try:
+      gradient = d.subs({x:x_val, y:y_val})
+      if not isinstance(float(gradient), float):
+        raise ValueError('Substitution is complex.')
+      else:
+        gradient = float(gradient)
+    except Exception: # cannot calculate gradient from existing ordinate, terminate euler's method
+      break
+    x_val -= delta_x
+    y_val = y_val - delta_x * gradient
+    solution_x.append(x_val)
+    solution_y.append(y_val)
+
+  plt.plot(solution_x, solution_y, 'r')
+
+  plt.show()
+
+interactive_plot = interactive(f, delta_x=(0.5, 5))
+interactive_plot
+
+
+
